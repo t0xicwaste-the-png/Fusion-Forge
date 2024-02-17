@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Little Alchemy Clone</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    #game-container {
+      text-align: center;
+    }
+    .element {
+      display: inline-block;
+      width: 120px;
+      height: 120px;
+      border: 1px solid black;
+      margin: 10px;
+      cursor: pointer;
+      transition: transform 0.2s ease-in-out;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+    .element.dragging {
+      transform: scale(1.1); /* Scale up when dragging */
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1 style="color: #333;">Little Alchemy Clone</h1>
+    <div id="elements">
+      <!-- Elements will be dynamically added here -->
+    </div>
+  </div>
+
+  <script>
+    // Define elements and their combinations
+    let elements = JSON.parse(localStorage.getItem('elements')) || [
+      { id: 1, name: "fire" },
+      { id: 2, name: "water" },
+      { id: 3, name: "earth" },
+      { id: 4, name: "air" }
+      // Add more elements as needed
+    ];
+
+    let combinations = JSON.parse(localStorage.getItem('combinations')) || [
+      { input: ["fire", "water"], output: "steam" },
+      { input: ["water", "earth"], output: "mud"},
+      { input: ["air", "earth"], output: "dust"},
+      { input: ["fire", "earth"], output: "volcano"},
+      { input: ["dust", "steam"], output: "dusty steam"}
+    ];
+
+    // Display elements on the page
+    const elementsContainer = document.getElementById("elements");
+
+    function displayElements() {
+      elementsContainer.innerHTML = ""; // Clear previous elements
+      elements.forEach(element => {
+        const elementDiv = document.createElement("div");
+        elementDiv.classList.add("element");
+        elementDiv.textContent = element.name;
+        elementDiv.draggable = true;
+        elementDiv.style.backgroundColor = getRandomColor();
+        elementDiv.addEventListener("dragstart", () => startDragging(elementDiv));
+        elementDiv.addEventListener("dragend", () => endDragging());
+        elementDiv.addEventListener("dragover", (event) => allowDrop(event));
+        elementDiv.addEventListener("drop", (event) => drop(event, element.name));
+        elementsContainer.appendChild(elementDiv);
+      });
+    }
+
+    displayElements();
+
+    let draggingElement = null;
+
+    function startDragging(element) {
+      draggingElement = element;
+      draggingElement.classList.add("dragging");
+    }
+
+    function endDragging() {
+      if (draggingElement) {
+        draggingElement.classList.remove("dragging");
+        draggingElement = null;
+      }
+    }
+
+    function allowDrop(event) {
+      event.preventDefault();
+    }
+
+    function drop(event, targetElementName) {
+      event.preventDefault();
+      const sourceElementName = draggingElement.textContent;
+      const combination = combinations.find(combination =>
+        combination.input.includes(sourceElementName) &&
+        combination.input.includes(targetElementName)
+      );
+      if (combination) {
+        const outputElement = combination.output;
+        let newElement;
+        // Check if this combination has been made before
+        const existingCombination = combinations.find(
+          comb => comb.input.includes(sourceElementName) && comb.input.includes(targetElementName)
+        );
+        if (!existingCombination || !existingCombination.named) {
+          // Prompt the player to name the new element
+          const customName = prompt(`Enter a name for the new element created by combining ${sourceElementName} and ${targetElementName}:`, "Custom Element");
+          newElement = { id: elements.length + 1, name: customName };
+          // Update combinations array to mark this combination as named
+          if (existingCombination) existingCombination.named = true;
+        } else {
+          // Use the predefined name for this combination
+          newElement = { id: elements.length + 1, name: outputElement };
+        }
+        // Check if the element already exists
+        const existingElement = elements.find(element => element.name === newElement.name);
+        if (!existingElement) {
+          elements.push(newElement);
+          localStorage.setItem('elements', JSON.stringify(elements)); // Save elements to local storage
+          displayElements(); // Update the displayed elements
+        } else {
+          console.log(`Element '${newElement.name}' already exists.`);
+        }
+      } else {
+        console.log("No combination found for the selected elements.");
+      }
+    }
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+  </script>
+</body>
+</html>
